@@ -227,9 +227,9 @@ def main():
     parser.add_argument('--save_mode', type=str, choices=['all', 'best'], default='best')
     parser.add_argument('--log', type=str)
 
-    parser.add_argument('--output-data-dir', type=str, default=os.environ['SM_OUTPUT_DATA_DIR'])
-    parser.add_argument('--model-dir', type=str, default=os.environ['SM_MODEL_DIR'])
-    parser.add_argument('--train', type=str, default=os.environ['SM_CHANNEL_TRAIN'])
+    parser.add_argument('--output-data-dir', type=str)  # , default=os.environ['SM_OUTPUT_DATA_DIR'])
+    parser.add_argument('--model-dir', type=str)  # , default=os.environ['SM_MODEL_DIR'])
+    parser.add_argument('--train', type=str)  # , default=os.environ['SM_CHANNEL_TRAIN'])
 
     opt = parser.parse_args()
     opt.cuda = not opt.no_cuda
@@ -237,7 +237,7 @@ def main():
 
     opt.vocabpath = os.path.join(opt.train, "java-small.dict.c2s")
     opt.trainpath = os.path.join(opt.train, "train.h5")
-    opt.validpath = os.path.join(opt.train, "valid.h5")
+    opt.validpath = os.path.join(opt.train, "val.h5")
 
     if opt.save_model:
         opt.save_model_name = os.path.join(opt.model_dir, "model")
@@ -286,15 +286,13 @@ def main():
 def prepare_dataloaders(args):
     # ========= Preparing DataLoader =========#
     dct = Dictionaries(args.vocabpath)
-    train_h5 = h5py.File(args.trainpath, "r")
-    valid_h5 = h5py.File(args.validpath, "r")
 
-    trainloader = DataLoader(C2SDataSet(train_h5, dct),
+    trainloader = DataLoader(C2SDataSet(args.trainpath, dct),
                              batch_size=args.batch_size,
                              shuffle=True,
                              num_workers=args.num_worker)
 
-    validloader = DataLoader(C2SDataSet(valid_h5, dct),
+    validloader = DataLoader(C2SDataSet(args.validpath, dct),
                              batch_size=args.batch_size,
                              shuffle=True,
                              num_workers=args.num_worker)
