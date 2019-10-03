@@ -6,6 +6,7 @@ import argparse
 import math
 import time
 import h5py
+import os
 
 from tqdm import tqdm
 import torch
@@ -176,13 +177,13 @@ def train(model, training_data, validation_data, optimizer, device, opt):
             'settings': opt,
             'epoch': epoch_i}
 
-        if opt.save_model:
+        if opt.save_model_name:
             if opt.save_mode == 'all':
-                model_name = opt.save_model + \
+                model_name = opt.save_model_name + \
                     '_accu_{accu:3.3f}.chkpt'.format(accu=100*valid_accu)
                 torch.save(checkpoint, model_name)
             elif opt.save_mode == 'best':
-                model_name = opt.save_model + '.chkpt'
+                model_name = opt.save_model_name + '.chkpt'
                 if valid_accu >= max(valid_accus):
                     torch.save(checkpoint, model_name)
                     print('    - [Info] The checkpoint file has been updated.')
@@ -201,43 +202,45 @@ def main():
     ''' Main function '''
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-vocabpath", type=str,
-                        default="data/java-small.dict.c2s",
-                        help="path of input data")
-    parser.add_argument("-trainpath", type=str,
-                        default="data/train.h5",
-                        help="path of train data")
-    parser.add_argument("-validpath", type=str,
-                        default="data/val.h5",
-                        help="path of valid data")
+    parser.add_argument('--epoch', type=int, default=4)
+    parser.add_argument('--batch_size', type=int, default=32)
+    parser.add_argument('--num_worker', type=int, default=4)
 
-    parser.add_argument('-epoch', type=int, default=10)
-    parser.add_argument('-batch_size', type=int, default=8)
-    parser.add_argument('-num_worker', type=int, default=0)
+    parser.add_argument('--d_model', type=int, default=512)
+    parser.add_argument('--d_inner_hid', type=int, default=2048)
+    parser.add_argument('--d_k', type=int, default=64)
+    parser.add_argument('--d_v', type=int, default=64)
 
-    parser.add_argument('-d_model', type=int, default=512)
-    parser.add_argument('-d_inner_hid', type=int, default=2048)
-    parser.add_argument('-d_k', type=int, default=64)
-    parser.add_argument('-d_v', type=int, default=64)
+    parser.add_argument('--n_head', type=int, default=6)
+    parser.add_argument('--n_layers', type=int, default=2)
+    parser.add_argument('--n_warmup_steps', type=int, default=4000)
 
-    parser.add_argument('-n_head', type=int, default=6)
-    parser.add_argument('-n_layers', type=int, default=2)
-    parser.add_argument('-n_warmup_steps', type=int, default=4000)
+    parser.add_argument('--dropout', type=float, default=0.1)
+    parser.add_argument('--embs_share_weight', action='store_true')  # TODO: Remove since it does not make sense
+    parser.add_argument('--proj_share_weight', action='store_true')  # TODO: Remove since it does not make sense
 
-    parser.add_argument('-dropout', type=float, default=0.1)
-    parser.add_argument('-embs_share_weight', action='store_true')  # TODO: Remove since it does not make sense
-    parser.add_argument('-proj_share_weight', action='store_true')  # TODO: Remove since it does not make sense
+    parser.add_argument('--no_cuda', action='store_true')
+    parser.add_argument('--label_smoothing', action='store_true')
 
-    parser.add_argument('-log', default=None)
-    parser.add_argument('-save_model', default=None)
-    parser.add_argument('-save_mode', type=str, choices=['all', 'best'], default='best')
+    # Logging and Saving
+    parser.add_argument('--save_model', type=str)
+    parser.add_argument('--save_mode', type=str, choices=['all', 'best'], default='best')
+    parser.add_argument('--log', type=str)
 
-    parser.add_argument('-no_cuda', action='store_true')
-    parser.add_argument('-label_smoothing', action='store_true')
+    parser.add_argument('--output-data-dir', type=str, default=os.environ['SM_OUTPUT_DATA_DIR'])
+    parser.add_argument('--model-dir', type=str, default=os.environ['SM_MODEL_DIR'])
+    parser.add_argument('--train', type=str, default=os.environ['SM_CHANNEL_TRAIN'])
 
     opt = parser.parse_args()
     opt.cuda = not opt.no_cuda
     opt.d_word_vec = opt.d_model
+
+    opt.vocabpath = os.path.join(opt.train, "java-small.dict.c2s")
+    opt.trainpath = os.path.join(opt.train, "train.h5")
+    opt.validpath = os.path.join(opt.train, "valid.h5")
+
+    if opt.save_model:
+        opt.save_model_name = os.path.join(opt.model_dir, "model")
 
     # ========= Loading Dataset ========= #
     opt.max_token_seq_len = 32  # TODO: Hardcoded, make variable
