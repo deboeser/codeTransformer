@@ -240,8 +240,9 @@ def main():
 
     # ========= Loading Dataset ========= #
     opt.max_token_seq_len = 32  # TODO: Hardcoded, make variable
+    device = torch.device('cuda' if opt.cuda else 'cpu')
 
-    dct, training_data, validation_data = prepare_dataloaders(opt)
+    dct, training_data, validation_data = prepare_dataloaders(opt, device)
 
     opt.terminal_vocab_size = dct.terminal_vocab_size
     opt.path_vocab_size = dct.path_vocab_size
@@ -254,7 +255,6 @@ def main():
 
     print(opt)
 
-    device = torch.device('cuda' if opt.cuda else 'cpu')
     transformer = Transformer(
         opt.terminal_vocab_size,
         opt.path_vocab_size,
@@ -279,16 +279,16 @@ def main():
     train(transformer, training_data, validation_data, optimizer, device, opt)
 
 
-def prepare_dataloaders(args):
+def prepare_dataloaders(args, device):
     # ========= Preparing DataLoader =========#
     dct = Dictionaries(args.vocabpath)
 
-    trainloader = DataLoader(C2SDataSet(args.trainpath, dct),
+    trainloader = DataLoader(C2SDataSet(args.trainpath, dct, device=device),
                              batch_size=args.batch_size,
                              shuffle=True,
                              num_workers=args.num_worker)
 
-    validloader = DataLoader(C2SDataSet(args.validpath, dct),
+    validloader = DataLoader(C2SDataSet(args.validpath, dct, device=device),
                              batch_size=args.batch_size,
                              shuffle=True,
                              num_workers=args.num_worker)
