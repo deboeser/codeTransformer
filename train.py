@@ -5,7 +5,6 @@ This script handling the training process.
 import argparse
 import math
 import time
-import h5py
 import os
 
 from tqdm import tqdm
@@ -223,13 +222,10 @@ def main():
     parser.add_argument('--label_smoothing', action='store_true')
 
     # Logging and Saving
-    parser.add_argument('--save_model', type=str)
+    parser.add_argument('--save_model', type=str, default=os.environ['SM_MODEL_DIR'])
     parser.add_argument('--save_mode', type=str, choices=['all', 'best'], default='best')
-    parser.add_argument('--log', type=str)
-
-    parser.add_argument('--output-data-dir', type=str)  # , default=os.environ['SM_OUTPUT_DATA_DIR'])
-    parser.add_argument('--model-dir', type=str)  # , default=os.environ['SM_MODEL_DIR'])
-    parser.add_argument('--train', type=str)  # , default=os.environ['SM_CHANNEL_TRAIN'])
+    parser.add_argument('--log', type=str, default=os.environ['SM_OUTPUT_DATA_DIR'])
+    parser.add_argument('--train', type=str, default=os.environ['SM_CHANNEL_TRAIN'])
 
     opt = parser.parse_args()
     opt.cuda = not opt.no_cuda
@@ -240,7 +236,7 @@ def main():
     opt.validpath = os.path.join(opt.train, "val.h5")
 
     if opt.save_model:
-        opt.save_model_name = os.path.join(opt.model_dir, "model")
+        opt.save_model_name = os.path.join(opt.save_model, "model")
 
     # ========= Loading Dataset ========= #
     opt.max_token_seq_len = 32  # TODO: Hardcoded, make variable
